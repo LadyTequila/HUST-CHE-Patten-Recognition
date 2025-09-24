@@ -1,0 +1,16 @@
+scores = []  # 用于存放每条路径的得分
+    for path in paths:  # 遍历2^{5}=32条路径里的每条路径
+        for i, place in enumerate(path):  # i是下标,place=BJ or YN
+            if i == 0:  # 如果是第一天的话要用起始概率矩阵而不用状态转移概率矩阵
+                score = start_probability[place] * \
+                        emission_probability[place][observation_seq[i]]  # P(第一天在北京)*P(在北京吃烤鸭)
+
+            else:  # 从第二天开始
+                pre_place = path[i - 1]  # 得到前一天的地点
+                score = score * transition_probability[pre_place][place] * \
+                        emission_probability[place][observation_seq[i]]  # 得分=历史得分*状态转移得分*发射得分
+                # transition_probability[pre_place][place]: 按字典的键值对方法取值的,不是列表
+
+        scores.append(score)
+
+    return (paths, scores)  # 返回"所有路径和所有得分"元祖,到时候用zip一组一组地取

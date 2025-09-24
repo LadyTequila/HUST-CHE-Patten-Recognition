@@ -1,0 +1,64 @@
+clc;
+clear all;
+clf;
+
+% 加载带噪声和原始信号
+load sin.mat; % 加载文件，包含 e0（原始信号）和 e1（带噪声信号）
+
+% 定义小波函数和最大分解层数
+wavelet_functions = {'db1', 'db2', 'sym2','mb4.2','mb8.2','bior1.1', 'coif1', 'coif2', 'coif3','han2.3'};
+max_level = 6; % 设置最大分解层数
+max_snr = -inf; % 初始化最大信噪比
+best_wavelet = ''; % 保存最优小波函数
+best_level = 0; % 保存最优分解层数
+best_image = []; % 保存最优去噪结果
+
+% 遍历所有小波函数和分解层数
+for i = 1:length(wavelet_functions)
+    for level = 1:max_level
+        try
+            % 对信号进行小波变换
+            [c, l] = wavedec(e1, level, wavelet_functions{i});
+
+            % 提取低频分量并实现信号去噪
+            image = wrcoef('a', c, l, wavelet_functions{i}, level);
+
+            % 计算信号功率和噪声功率
+            signal_power = sum(e0.^2); % 原始信号功率
+            noise_power = sum((image - e0).^2); % 残余噪声功率
+
+            % 计算信噪比 (SNR)
+            snr_current = 10 * log10(signal_power / noise_power);
+
+            % 如果当前信噪比更大，则更新最优结果
+            if snr_current>max_snr
+                max_snr=snr_current;
+                best_wavelet=wavelet_functions{i};
+                best_level=level;
+                best_image=image;
+            end
+        catch
+            % 捕捉可能的错误并继续循环
+            fprintf('小波函数 %s 在分解层数 %d 时出错，跳过。\n', wavelet_functions{i}, level);
+            continue;
+        end
+    end
+end
+
+% 输出最优结果
+fprintf('最佳信噪比: %.2f dB\n', max_snr);
+fprintf('最佳小波函数: %s\n', best_wavelet);
+fprintf('最佳分解层数: %d\n', best_level);
+
+% 绘制信号图像
+subplot(3, 1, 1);
+plot(e1);
+title('带噪声的信号');
+
+subplot(3, 1, 2);
+plot(e0);
+title('原始信号');
+
+subplot(3, 1, 3);
+plot(best_image);
+title(sprintf('去噪后的信号 (最佳小波: %s, 层数: %d)', best_wavelet, best_level));

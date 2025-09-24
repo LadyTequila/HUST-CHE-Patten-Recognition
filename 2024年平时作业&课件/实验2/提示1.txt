@@ -1,0 +1,5 @@
+% 计算 filtered_signal 与 clean_signal 的百分比误差
+error_percentage = sum((filtered_signal - signal).^2) / sum(signal.^2) * 100;
+
+% 输出结果
+fprintf('去噪信号相对于原始信号的百分比误差: %.4f%%\n', error_percentage);

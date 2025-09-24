@@ -1,0 +1,85 @@
+clc;
+clear;
+close all;
+load("Need2denoise.mat");
+load("Puresignal.mat")
+% 采样设置
+Fs = 1500;           % 采样频率 (Hz)
+T = 1 / Fs;          % 采样周期 (s)
+L = 2000;            % 信号长度
+t = (0:L-1) * T;     % 时间向量
+
+% 2. 窗函数类型选择（可调）
+window_type = 'hamming'; % 可选: 'hamming', 'hann', 'blackman', 'rectangle'
+
+% 应用窗函数（如果需要）
+switch window_type
+    case 'hamming'
+        window = hamming(L)';
+    case 'hann'
+        window = hann(L)';
+    case 'blackman'
+        window = blackman(L)';
+    case 'rectangle'
+        window = ones(size(noisy_signal)); % 无窗/矩形窗
+    otherwise
+        error('未知窗函数类型，请选择：hamming, hann, blackman, rectangle');
+end
+
+% noisy_signal_windowed = noisy_signal .* window; % 应用窗函数
+
+fft_noisy_signal = fft(noisy_signal.* window);
+N = length(fft_noisy_signal);
+freq = (0:floor(N/2)) * (Fs / N); % 计算正频率范围
+fft_magnitude = abs(fft_noisy_signal(1:floor(N/2)+1)); % 取正频部分的幅值
+
+% 计算每个频率成分的能量
+energy = fft_magnitude.^2;
+
+% 计算总能量
+total_energy = sum(energy);
+
+% 计算每个频率成分的能量占比
+energy_percentage = (energy / total_energy) * 100;
+
+% 绘制频谱图
+figure;
+subplot(2,1,1);
+plot(freq, fft_magnitude);
+title('带噪信号的频谱（正频率）');
+xlabel('频率 (Hz)');
+ylabel('幅值');
+
+% 显示频率和对应的能量占比
+subplot(2,1,2);
+plot(freq, energy_percentage);
+title('带噪信号的频率能量占比');
+xlabel('频率 (Hz)');
+ylabel('能量占比 (%)');
+
+% 3. 去噪：滤除200Hz噪声
+fft_filtered = fft_noisy_signal;
+notch_start1 = round((150-1) * N / Fs); % 200Hz 附近滤波起点
+notch_end1 = round((150+1) * N / Fs);   % 200Hz 附近滤波终点
+% 正频段滤波
+fft_filtered(notch_start1:notch_end1) = 0; % 正频率部分
+fft_filtered(end-notch_end1:end-notch_start1) = 0; % 对称负频部分
+
+notch_start2 = round((200-0.01) * N / Fs); % 200Hz 附近滤波起点
+notch_end2 = round((200+0.01) * N / Fs);   % 200Hz 附近滤波终点
+% 正频段滤波
+fft_filtered(notch_start2:notch_end2) = 0; % 正频率部分
+fft_filtered(end-notch_end2:end-notch_start2) = 0; % 对称负频部分
+
+notch_start3 = round((250-0.01) * N / Fs); % 200Hz 附近滤波起点
+notch_end3 = round((250+0.01) * N / Fs);   % 200Hz 附近滤波终点
+% 正频段滤波
+fft_filtered(notch_start3:notch_end3) = 0; % 正频率部分
+fft_filtered(end-notch_end3:end-notch_start3) = 0; % 对称负频部分
+
+filtered_signal = real(ifft(fft_filtered));
+% 计算 filtered_signal 与 clean_signal 的百分比误差
+error_percentage = sum((filtered_signal - clean_signal).^2) / sum(clean_signal.^2) * 100;
+
+% 输出结果
+fprintf('去噪信号相对于原始信号的百分比误差: %.4f%%\n', error_percentage);

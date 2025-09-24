@@ -1,0 +1,29 @@
+clc;
+clear;
+close all;
+
+% 参数初始化
+E = 1;               % 信号幅值
+f1 = 5000;           % 基频，单位为 Hz
+T1 = 1 / f1;         % 基频周期
+dt = T1 / 1000;      % 时间间隔，分辨率高
+t = 0:dt:2*T1;       % 时间范围，取两个周期
+w1 = 2 * pi * f1;    % 基波角频率
+nf = 20;             % 最高谐波次数
+
+% 初始化
+x = zeros(size(t));  % 累加信号
+y = zeros(nf, length(t)); % 存储每次叠加后的信号
+
+% 谐波叠加
+for k = 1:nf
+    x = x + ((-1)^(k+1) / k) * sin(k * w1 * t); % 计算当前谐波并叠加
+    y(k, :) = x;                                % 保存当前叠加信号
+end
+
+% 绘制网格图
+mesh(t, 1:nf, y); 
+xlabel('Time (s)');
+ylabel('Harmonic Number');
+zlabel('Amplitude');
+title('Periodic Sawtooth Wave Approximation ');
